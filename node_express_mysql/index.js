@@ -2,9 +2,11 @@ const express = require('express');
 const app = express();
 const connection = require('./connection');
 const port = 3000;
+const cors = require('cors');
 
 app.use(express.json());
 
+app.use(cors());
 app.use((req, res, next) => {
     console.log('Coming in the middleware');
     next();
@@ -44,7 +46,7 @@ app.get('/employees/:id', async (req, res) => {
             if(data.length > 0){
                 return res.json(data);
             } else {
-                return res.json('Employee not found');
+                return res.json([]);
             }
     } catch (errors){
         res.send(errors);
@@ -55,10 +57,13 @@ app.post('/employees/', async (req, res) => {
     // const first_name = req.body.first_name;
     // const last_name = req.body.last_name;
     // const department_id = req.body.department_id;
-    var {first_name, last_name, department_id, salary} = req.body;
-    if (!first_name || !department_id) return res.send('Please provide the first name and department_id'); 
-    if(last_name == ''){
-        last_name = '';
+    var {firstName, lastName, department, salary, email, password} = req.body;
+    if (!firstName || !department) return res.send('Please provide the first name and department_id'); 
+
+    if (!email || !password) return res.send('Please provide the email and password'); 
+
+    if(lastName == ''){
+        lastName = '';
     }
     if(salary == ''){
         salary = 0;
@@ -66,8 +71,8 @@ app.post('/employees/', async (req, res) => {
 
     try{
         const [data] = await connection.promise().query(
-            `INSERT INTO fsbootcamp2024.employees (first_name, last_name, department_id, salary
-            VALUES (?, ?, ?, ?)`,[first_name, last_name, department_id, salary]);
+            `INSERT INTO fsbootcamp2024.employees (first_name, last_name, department_id, salary, email, password)
+            VALUES (?, ?, ?, ?, ?, ?)`,[firstName, lastName,  department, salary, email, password,]);
             if(data.affectedRows > 0){
                return res.json('Employee cretaed successfully')
             }else{
@@ -80,13 +85,13 @@ app.post('/employees/', async (req, res) => {
 
 app.put('/employees/update/:id', async (req, res) => {
     const employee_id = req.params.id;
-    const {first_name } = req.body;
+    const {firstName, lastName, email, password, salary, department } = req.body;
 
     try{
         const [data] = await connection.promise().query(`
-            UPDATE fsbootacamp2024.employees
-            SET first_name =?
-            WHERE employee_id =?`, [first_name,employee_id])
+            UPDATE fsbootcamp2024.employees
+            SET first_name =?, last_name =?, email=?, password=?, salary =?, department_id =?
+            WHERE employee_id =?`, [firstName,lastName,email, password, salary,department,employee_id])
         res.json(data);
     }catch(errors){
         res.json(errors);
@@ -101,7 +106,7 @@ app.delete('/employees/delete/:id', async(req, res) => {
     try {
         const [data] = await connection.promise().query("DELETE FROM fsbootcamp2024.employees WHERE employee_id = ?", employee_id);
         if(data.affectedRows > 0) {
-            return res.json('Employee deleted successfully');
+            return res.json({status:"success"});    
         } else {
             return res.json('Employee not found');
         }
